@@ -8,13 +8,12 @@ services:
     restart: unless-stopped
     environment:
       PORT: ${LANGFLOW_PORT}
-      DATABASE_URL: ${LANGFLOW_DATABASE_URL}  # Use the value from the .env file
+      DATABASE: ${LANGFLOW_DATABASE}
+      DATABASE_URL: ${LANGFLOW_DATABASE_URL}
     ports:
-      - "${LANGFLOW_PORT}:${LANGFLOW_PORT}"
+      - ${LANGFLOW_PORT}:${LANGFLOW_PORT}
     volumes:
-      - ./volumes/langflow:/app/data  # Ensure persistent data for Langflow
-    depends_on:
-      - db  # Make sure Langflow waits for the db service
+      - ./data/langflow:/app/data  # Store Langflow data locally
 
   # Supabase Studio
   studio:
@@ -34,7 +33,7 @@ services:
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
 
-  # Kong Gateway for Supabase
+  # Kong API Gateway
   kong:
     container_name: supabase-kong
     image: kong:2.8.1
@@ -60,11 +59,9 @@ services:
       retries: 5
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - ./volumes/db:/var/lib/postgresql/data  # Persistent storage for DB
+      - ./data/supabase:/var/lib/postgresql/data  # Store Supabase (PostgreSQL) data locally
 
 volumes:
-  db:
   langflow:
+  db:
