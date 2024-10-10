@@ -1,67 +1,48 @@
-version: '3.8'
-
 services:
-  # Langflow Service
   langflow:
+    image: langflowai/langflow
     container_name: langflow
-    image: langflowai/langflow:latest
-    restart: unless-stopped
-    environment:
-      PORT: ${LANGFLOW_PORT}
-      DATABASE: ${LANGFLOW_DATABASE}
-      DATABASE_URL: ${LANGFLOW_DATABASE_URL}
     ports:
-      - ${LANGFLOW_PORT}:${LANGFLOW_PORT}
-    volumes:
-      - ./data/langflow:/app/data  # Store Langflow data locally
+      - "7860:7860"
+    environment:
+      DATABASE_URL: postgresql://postgres:[your_postgres_password]@db:5432/[your_postgres_db]
+    depends_on:
+      - db
 
-  # Supabase Studio
+  db:
+    image: supabase/postgres:15.1.1.78
+    container_name: supabase_db
+    environment:
+      POSTGRES_PASSWORD: your_postgres_password
+      POSTGRES_DB: your_postgres_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+
   studio:
-    container_name: supabase-studio
-    image: supabase/studio:20240923-2e3e90c
-    restart: unless-stopped
+    image: supabase/studio:latest
+    container_name: supabase_studio
     ports:
       - "3000:3000"
+    environment:
+      SUPABASE_DB_URL: postgresql://postgres:[your_postgres_password]@db:5432/[your_postgres_db]
+      SUPABASE_URL: http://localhost:3000
     depends_on:
       - db
-      - kong
-    environment:
-      STUDIO_PG_META_URL: http://meta:8080
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      AUTH_JWT_SECRET: ${JWT_SECRET}
 
-  # Kong API Gateway
   kong:
-    container_name: supabase-kong
-    image: kong:2.8.1
-    restart: unless-stopped
+    image: kong:latest
+    container_name: kong
     ports:
       - "8000:8000"
-      - "8443:8443"
-    depends_on:
-      - db
+      - "8001:8001"
     environment:
       KONG_DATABASE: "off"
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-
-  # Supabase PostgreSQL Database
-  db:
-    container_name: supabase-db
-    image: supabase/postgres:15.1.1.78
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      retries: 5
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./data/supabase:/var/lib/postgresql/data  # Store Supabase (PostgreSQL) data locally
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    depends_on:
+      - db
 
 volumes:
-  langflow:
-  db:
+  supabase_data:
